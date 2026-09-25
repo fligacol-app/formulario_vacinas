@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Montserrat', sans-serif; background: #F5F5F3; min-height: 100vh; padding: 60px 20px; }
+.container { max-width: 720px; margin: 0 auto; background: white; border-radius: 4px; padding: 90px 40px 48px 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border-top: 3px solid #1B5E20; }
+h1 { color: #111111; text-align: left; margin-bottom: 4px; font-size: 24px; font-weight: 300; letter-spacing: 1px; text-transform: uppercase; }
+.subtitle { text-align: left; color: #757575; margin-bottom: 32px; font-size: 12px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; }
+.form-group { margin-bottom: 18px; }
+.form-group label { display: block; font-weight: 600; color: #1B5E20; margin-bottom: 6px; font-size: 13px; }
+.form-group label .required { color: #c62828; }
+.form-control { width: 100%; padding: 11px; border: 2px solid #e0e0e0; border-radius: 4px; font-size: 14px; font-family: 'Montserrat', sans-serif; transition: border-color 0.3s; }
+.form-control:focus { outline: none; border-color: #2E7D32; }
+.form-control:disabled { background: #f5f5f5; color: #aaa; cursor: not-allowed; }
+.form-row { display: flex; gap: 15px; }
+.form-row .form-group { flex: 1; }
+.check-group { display: flex; flex-direction: column; gap: 8px; }
+.check-option { display: flex; align-items: center; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 4px; cursor: pointer; transition: all 0.3s; }
+.check-option:hover { border-color: #2E7D32; background: #E8F5E9; }
+.check-option.selected { border-color: #2E7D32; background: #C8E6C9; }
+.check-option.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+.check-option input { margin-right: 10px; transform: scale(1.2); }
+.check-option .vaccine-info { font-size: 12px; color: #7f8c8d; }
+#idadeDisplay { display: inline-block; padding: 3px 11px; background: #2E7D32; color: white; border-radius: 12px; font-size: 12px; margin-left: 8px; font-weight: 600; }
+.btn-submit { width: 100%; padding: 14px; background: #111111; color: white; border: none; border-radius: 2px; font-size: 13px; font-weight: 600; font-family: 'Montserrat', sans-serif; cursor: pointer; transition: all 0.3s; letter-spacing: 1px; text-transform: uppercase; }
+.btn-submit:hover { background: #1B5E20; box-shadow: 0 4px 12px rgba(46,125,50,0.4); }
+.btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+.alert { padding: 14px; border-radius: 4px; margin-bottom: 20px; font-weight: 500; font-size: 13px; display: none; }
+.alert-success { background: #C8E6C9; color: #1B5E20; border: 1px solid #A5D6A7; }
+.alert-error { background: #FFCDD2; color: #B71C1C; border: 1px solid #EF9A9A; }
+.loading { text-align: center; padding: 20px; color: #2E7D32; font-weight: 500; }
+.calendar-box { background: #FAFAFA; border: 1px solid #e0e0e0; border-radius: 4px; padding: 16px; margin-bottom: 18px; position: relative; }
+.calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.calendar-header button { background: #111111; color: white; border: none; width: 30px; height: 30px; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: 'Montserrat', sans-serif; }
+.calendar-header button:disabled { background: #ccc; cursor: not-allowed; }
+.calendar-header button:hover:not(:disabled) { background: #1B5E20; }
+.calendar-header .mes-ano { font-weight: 600; color: #1B5E20; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; position: relative; min-height: 120px; }
+.calendar-dow { text-align: center; font-size: 10px; font-weight: 600; color: #7f8c8d; padding: 4px 0; }
+.calendar-day { text-align: center; padding: 6px 2px; border-radius: 4px; cursor: default; font-size: 11px; border: 1px solid transparent; min-height: 42px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #f0f0f0; color: #bbb; }
+.calendar-day.empty { visibility: hidden; }
+.calendar-day.past { color: #ccc; cursor: not-allowed; background: #f5f5f5; }
+.calendar-day .day-num { font-weight: 600; font-size: 12px; }
+.calendar-day .day-vagas { font-size: 10px; font-weight: 700; margin-top: 3px; letter-spacing: 0.2px; }
+.calendar-day.disponivel { background: #E8F5E9; color: #1B5E20; cursor: pointer; box-shadow: 0 0 0 2px rgba(46,125,50,0.15); }
+.calendar-day.disponivel .day-vagas { color: #1B5E20; }
+.calendar-day.limitado { background: #FFF8E1; color: #E65100; cursor: pointer; }
+.calendar-day.limitado .day-vagas { color: #E65100; animation: pulseVagas 1.6s infinite; }
+.calendar-day.limitado:hover { background: #FFECB3; border-color: #F57F17; }
+.calendar-day.esgotado { background: #FFEBEE; color: #c62828; cursor: not-allowed; }
+.calendar-day.selecionado { background: #2E7D32 !important; color: white !important; border-color: #1B5E20 !important; }
+.calendar-loading-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; font-size: 12px; color: #2E7D32; font-weight: 600; border-radius: 4px; z-index: 5; }
+.legend { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; font-size: 10px; }
+.legend-item { display: flex; align-items: center; gap: 4px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+.disp-info { background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border-left: 4px solid #2E7D32; border-radius: 4px; padding: 14px 18px; margin-top: 12px; font-size: 15px; font-weight: 600; color: #1B5E20; display: none; }
+.disp-info strong { font-size: 15px; }
+.disp-info .linha-vacina { display: block; font-size: 16px; font-weight: 700; margin-top: 6px; }
+.btn-bloco { padding: 10px 14px; border-radius: 4px; border: 2px solid #2E7D32; background: white; color: #1B5E20; cursor: pointer; font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 12px; }
+.btn-bloco:disabled { opacity: 0.4; cursor: not-allowed; border-color: #ccc; color: #999; }
+.btn-bloco.ativo { background: #2E7D32; color: white; }
+
+@keyframes pulseVagas {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+
+
+@media (max-width: 600px) {
+  html, body { overflow-x: hidden; width: 100%; }
+  body { padding: 20px 8px; }
+  .container { padding: 60px 12px 30px 12px; border-radius: 0; width: 100%; max-width: 100%; box-sizing: border-box; }
+  h1 { font-size: 19px; }
+  .subtitle { font-size: 11px; margin-bottom: 20px; }
+  .form-row { flex-direction: column; gap: 0; }
+  .calendar-box { padding: 10px; width: 100%; box-sizing: border-box; }
+  .calendar-grid { gap: 2px; width: 100%; box-sizing: border-box; }
+  .calendar-day { min-height: 36px; padding: 3px 1px; font-size: 9px; box-sizing: border-box; min-width: 0; overflow: hidden; }
+  .calendar-day .day-num { font-size: 11px; }
+  .calendar-day .day-vagas { font-size: 7px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: clip; }
+  .calendar-dow { font-size: 9px; padding: 2px 0; }
+  .calendar-header .mes-ano { font-size: 12px; }
+  .calendar-header button { width: 26px; height: 26px; font-size: 12px; flex-shrink: 0; }
+  .legend { font-size: 9px; gap: 8px; }
+  .btn-bloco { font-size: 11px; padding: 8px 10px; }
+  .disp-info { font-size: 13px; padding: 12px 14px; }
+  .disp-info .linha-vacina { font-size: 14px; }
+}
+
+@media (max-width: 380px) {
+  .calendar-day { min-height: 32px; font-size: 8px; padding: 2px 1px; }
+  .calendar-day .day-num { font-size: 10px; }
+  .calendar-day .day-vagas { font-size: 6px; }
+}
+</style>
+</head>
+<body>
+<div class="container" style="padding-top:0; overflow:hidden;">
+  <div style="display:flex; align-items:center; gap:16px; padding-top:24px; padding-bottom:20px; margin-bottom:24px; border-bottom:1px solid #E0E0E0;">
+    <div>
+      <div style="font-size:11px; font-weight:600; color:#8BC34A; letter-spacing:2px; text-transform:uppercase;">Vacinação Sazonal 2026/2027</div>
+      <div style="font-size:22px; font-weight:300; color:#1B5E20; letter-spacing:0.5px; text-transform:uppercase;">Marcação de Vacinas</div>
+<div style="font-size:12px; font-weight:500; color:#7f8c8d; margin-top:4px;">Campanha 2026/2027 · Farmácia da Liga das ASM de VNG &nbsp;·&nbsp; Telefone: 22 377 1010</div>
+    </div>
+  </div>
+
+  <div style="background:#F1F8E9; border-left:4px solid #2E7D32; border-radius:4px; padding:18px 20px; margin-bottom:24px; font-size:13px; line-height:1.6; color:#333;">
+    <p style="margin-bottom:12px;">A campanha de vacinação sazonal contra a gripe e a COVID-19 está disponível na Farmácia da Liga, de acordo com os critérios de elegibilidade definidos pela DGS.</p>
+
+    <p style="margin-bottom:6px; font-weight:700; color:#1B5E20;">Vacinação contra a gripe:</p>
+    <p style="margin-bottom:6px;"> - Pessoas entre os 60 e os 84 anos.</p>
+    <p style="margin-bottom:12px;"> - Pessoas entre os 18 e os 59 anos com patologia de risco atualizada no SNS. A confirmação destas marcações será efetuada por SMS após validação de patologia de risco.</p>
+
+    <p style="margin-bottom:6px; font-weight:700; color:#1B5E20;">Vacinação contra a COVID-19:</p>
+    <p style="margin-bottom:6px;"> - Pessoas entre os 70 e os 84 anos.</p>
+    <p style="margin-bottom:6px;"> - Pessoas entre os 18 e os 59 anos com patologia de risco atualizada no SNS. A confirmação destas marcações será efetuada por SMS após validação de patologia de risco.</p>
+    <p style="margin-bottom:12px;"> - Pessoas entre os 60 e os 69 anos sem patologia de risco que solicitem a vacinação, após ponderação individual do benefício/risco.</p>
+
+    <p style="margin-bottom:12px;"> <strong>Utentes não abrangidos pela campanha de vacinação gratuita, poderão ter acesso à Vacina da Gripe, mediante apresentação obrigatória de receita médica.</strong></p>
+
+    <p style="margin-bottom:0;"> <strong>Caso pretenda tomar APENAS a vacina da GRIPE</strong>, poderá dirigir-se à Farmácia da Liga. Mediante disponibilidade de stock.
+Horário das 10:00 às 12:00 e das 14:30 às 19:00, de segunda a sexta-feira, sujeito a alteração. <strong>(Neste caso, NÃO É NECESSÁRIO O PREENCHIMENTO DO FORMULÁRIO)</strong>. Caso tenha uma marcação para vacina Covid já efetuada, aguarde 15 dias até se dirigir à Farmácia.</p>
+  </div>
+
+  <div id="alertBox" class="alert"></div>
+  <form id="formMarcacao">
+    <div class="form-group">
+      <label>Nome Completo <span class="required">*</span></label>
+      <input type="text" class="form-control" id="nome" placeholder="Nome do utente" required>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Data de Nascimento <span class="required">*</span></label>
+        <input type="date" class="form-control" id="dataNascimento" required onchange="calcularIdade()">
+        <span id="idadeDisplay" style="display:none;"></span>
+      </div>
+      <div class="form-group">
+        <label>NIF <span class="required">*</span></label>
+        <input type="text" class="form-control" id="nif" placeholder="9 digitos" maxlength="9" pattern="\d{9}" required>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Contacto Telefonico <span class="required">*</span></label>
+      <input type="text" class="form-control" id="contacto" placeholder="9 digitos" maxlength="9" pattern="\d{9}" required>
+    </div>
+
+    <div class="form-group">
+      <label>Vacina(s) Pretendida(s) <span class="required">*</span></label>
+      <div class="check-group">
+  <label class="check-option" id="opt-covid">
+    <input type="checkbox" name="tipoVacina" value="COVID-19" onchange="toggleCheck(this)">
+    <div>
+      <strong>COVID-19</strong><br>
+      <span class="vaccine-info">Vacina contra COVID-19 (dos 60 aos 84 anos) ou dos 18 aos 59 anos se patologia de risco atualizada no SNS.</span><br>
+      <span class="vaccine-info" style="color:#1565C0; font-weight:600;">Nas marcações dos 18 aos 59 anos: a confirmação será efetuada por SMS após validação de patologia de risco.</span>
+    </div>
+  </label>
+  <label class="check-option" id="opt-gripeC">
+    <input type="checkbox" name="tipoVacina" value="Gripe Contingente (+60)" onchange="toggleCheck(this)">
+    <div>
+      <strong>Gripe</strong><br>
+      <span class="vaccine-info">Para utentes com 60 ou mais anos, ou dos 18 aos 59 anos se patologia de risco atualizada no SNS.</span><br>
+      <span class="vaccine-info" style="color:#1565C0; font-weight:600;">Nas marcações dos 18 aos 59 anos: a confirmação será efetuada por SMS após validação de patologia de risco.</span>
+    </div>
+  </label>
+</div>
+
+      <div id="avisoIdade85" style="display:none; margin-top:10px; background:#FFF3E0; border-left:4px solid #E65100; border-radius:4px; padding:12px; font-size:12px; color:#E65100; font-weight:500;">
+        Para utentes com 85 anos ou mais, deve contactar o seu centro de saúde.
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Selecione a Data <span class="required">*</span></label>
+      <div class="calendar-box">
+        <div class="calendar-header">
+          <button type="button" id="btnMesAnterior" onclick="mudarMes(-1)">&#8249;</button>
+          <span class="mes-ano" id="mesAnoLabel">--</span>
+          <button type="button" id="btnMesSeguinte" onclick="mudarMes(1)">&#8250;</button>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+        <div class="legend">
+          <div class="legend-item"><span class="legend-dot" style="background:#C8E6C9;"></span> Disponivel</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#FFCDD2;"></span> Indisponivel</div>
+        </div>
+        <div class="disp-info" id="dispInfo"></div>
+      </div>
+      <input type="hidden" id="dataMarcacao" required>
+      <input type="hidden" id="blocoHoraInicio" required>
+      <input type="hidden" id="blocoHoraFim" required>
+    </div>
+
+    <div class="form-group">
+      <label class="check-option" id="opt-listaEspera" style="align-items:flex-start;">
+        <input type="checkbox" id="listaEspera" style="margin-top:2px;">
+        <div>
+          <strong>Disponível para vaga mais próxima</strong><br>
+          <span class="vaccine-info">Se surgir uma vaga numa data mais próxima da que escolhi, aceito ser contactado(a) para antecipar a marcação.</span>
+        </div>
+      </label>
+    </div>
+
+    <div class="form-group">
+      <label>Observacoes (opcional)</label>
+      <textarea class="form-control" id="observacoes" rows="2" placeholder="Informacao adicional"></textarea>
+    </div>
+
+    <div id="avisoRecuperacao" class="disp-info" style="display:none; background:#FFF3E0; color:#E65100;">
+      <strong>Marcacao de Recuperacao</strong> - Esta marcacao substitui uma falta anterior.
+    </div>
+    <input type="hidden" id="recuperacao" value="">
+    <input type="hidden" id="origemRow" value="">
+
+    <div class="form-group" style="background:#F1F8E9;border-radius:8px;padding:14px;margin-bottom:16px;">
+      <label class="check-option" id="opt-consentimento" style="align-items:flex-start;border:none;background:transparent;padding:0;">
+        <input type="checkbox" id="consentimentoDados" required style="margin-top:2px;">
+        <div>
+          <span style="font-size:12px;color:#1B5E20;">
+            Ao clicar em "Confirmar Marcação" confirmo que concordo com a autorização para uso dos dados fornecidos para agendamento da administração da vacina pretendida, e concordo em ser contactado(a) para fins de acompanhamento e confirmação.
+          </span>
+        </div>
+      </label>
+    </div>
+
+    <button type="submit" class="btn-submit" id="btnSubmit">Confirmar Marcação</button>
+  </form>
+
+  <div id="loading" class="loading" style="display:none;">
+    A processar marcacao...
+  </div>
+</div>
+
+<script>
+(function preencherRecuperacao() {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('recuperacao') === '1') {
+    document.getElementById('recuperacao').value = '1';
+    document.getElementById('origemRow').value = params.get('origemRow') || '';
+    document.getElementById('avisoRecuperacao').style.display = 'block';
+    if (params.get('nome')) document.getElementById('nome').value = decodeURIComponent(params.get('nome'));
+    if (params.get('nif')) document.getElementById('nif').value = params.get('nif');
+    if (params.get('contacto')) document.getElementById('contacto').value = params.get('contacto');
+    if (params.get('dataNascimento')) {
+      document.getElementById('dataNascimento').value = params.get('dataNascimento');
+      calcularIdade();
+    }
+    if (params.get('tipoVacina')) {
+      var tipo = decodeURIComponent(params.get('tipoVacina'));
+      var checkbox = document.querySelector('input[name="tipoVacina"][value="' + tipo + '"]');
+      if (checkbox) { checkbox.checked = true; toggleCheck(checkbox); }
+    }
+  }
+})();
+
+var hojeReal = new Date();
+hojeReal.setHours(0,0,0,0);
+
+var mesMinimoFixo = new Date(2026, 8, 1);
+var mesAtual = mesMinimoFixo;
+var dataSelecionada = null;
+var blocoSelecionado = null;
+var disponibilidadeCache = {};
+var requestIdAtual = 0;
+var marcacaoPendente = false;
+
+function formatarDataISO(d) {
+  var y = d.getFullYear();
+  var m = (d.getMonth() + 1).toString().padStart(2, '0');
+  var dd = d.getDate().toString().padStart(2, '0');
+  return y + '-' + m + '-' + dd;
+}
+
+function calcularIdade() {
+  var dataNasc = document.getElementById('dataNascimento').value;
+  if (!dataNasc) return;
+
+  var anoDigitado = dataNasc.split('-')[0];
+  if (anoDigitado.length > 4) {
+    showAlert('Ano de nascimento invalido!', 'error');
+    document.getElementById('dataNascimento').value = '';
+    document.getElementById('idadeDisplay').style.display = 'none';
+    return;
+  }
+
+  var hoje = new Date();
+  var nasc = new Date(dataNasc);
+  var idade = hoje.getFullYear() - nasc.getFullYear();
+  var m = hoje.getMonth() - nasc.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
+  var display = document.getElementById('idadeDisplay');
+  display.textContent = idade + ' anos';
+  display.style.display = 'inline-block';
+
+  var opCont = document.getElementById('opt-gripeC');
+  opCont.classList.remove('disabled');
+  if (idade < 18) {
+    opCont.classList.add('disabled');
+    opCont.querySelector('input').checked = false;
+  }
+
+  var opCovid = document.getElementById('opt-covid');
+  opCovid.classList.remove('disabled');
+  if (idade < 18) {
+    opCovid.classList.add('disabled');
+    opCovid.querySelector('input').checked = false;
+  }
+
+  var avisoIdade85 = document.getElementById('avisoIdade85');
+  avisoIdade85.style.display = idade >= 85 ? 'block' : 'none';
+
+  if (idade >= 85) {
+    document.getElementById('opt-covid').classList.add('disabled');
+    document.getElementById('opt-covid').querySelector('input').checked = false;
+    document.getElementById('opt-gripeC').classList.add('disabled');
+    document.getElementById('opt-gripeC').querySelector('input').checked = false;
+  }
+
+  atualizarSelecaoVisual();
+}
+
+function toggleCheck(checkbox) {
+  atualizarSelecaoVisual();
+  if (dataSelecionada) mostrarInfoDisponibilidade(dataSelecionada);
+}
+
+function atualizarSelecaoVisual() {
+  document.querySelectorAll('.check-option').forEach(function(el) {
+    var input = el.querySelector('input');
+    if (input.checked) el.classList.add('selected');
+    else el.classList.remove('selected');
+  });
+}
+
+document.getElementById('nif').addEventListener('input', function(e) {
+  e.target.value = e.target.value.replace(/\D/g, '').substring(0, 9);
+});
+document.getElementById('contacto').addEventListener('input', function(e) {
+  e.target.value = e.target.value.replace(/\D/g, '').substring(0, 9);
+});
+
+function mudarMes(delta) {
+  var novoMes = new Date(mesAtual.getFullYear(), mesAtual.getMonth() + delta, 1);
+  if (novoMes < mesMinimoFixo) return;
+  mesAtual = novoMes;
+  renderCalendario();
+}
+
+function criarEsqueleto(diaSemanaInicio, totalDias) {
+  var grid = document.getElementById('calendarGrid');
+  grid.innerHTML = '';
+
+  var dows = ['D','S','T','Q','Q','S','S'];
+  dows.forEach(function(d) {
+    var el = document.createElement('div');
+    el.className = 'calendar-dow';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  for (var i = 0; i < diaSemanaInicio; i++) {
+    var empty = document.createElement('div');
+    empty.className = 'calendar-day empty';
+    grid.appendChild(empty);
+  }
+
+  for (var dia = 1; dia <= totalDias; dia++) {
+    var el = document.createElement('div');
+    el.className = 'calendar-day';
+    var numEl = document.createElement('div');
+    numEl.className = 'day-num';
+    numEl.textContent = dia;
+    el.appendChild(numEl);
+    grid.appendChild(el);
+  }
+
+  var overlay = document.createElement('div');
+  overlay.className = 'calendar-loading-overlay';
+  overlay.textContent = 'A carregar vagas...';
+  grid.appendChild(overlay);
+}
+
+function renderCalendario() {
+  var meses = ['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  document.getElementById('mesAnoLabel').textContent = meses[mesAtual.getMonth()] + ' ' + mesAtual.getFullYear();
+
+  document.getElementById('btnMesAnterior').disabled = (mesAtual <= mesMinimoFixo);
+
+  var primeiroDia = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1);
+  var ultimoDia = new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 1, 0);
+  var diaSemanaInicio = primeiroDia.getDay();
+  var totalDiasMes = ultimoDia.getDate();
+
+  criarEsqueleto(diaSemanaInicio, totalDiasMes);
+
+  var dataInicioISO = formatarDataISO(primeiroDia);
+  var meuRequestId = ++requestIdAtual;
+
+  google.script.run.withSuccessHandler(function(disp) {
+    if (meuRequestId !== requestIdAtual) return;
+
+    disponibilidadeCache = disp;
+    var grid = document.getElementById('calendarGrid');
+    var overlay = grid.querySelector('.calendar-loading-overlay');
+    if (overlay) overlay.remove();
+
+    var dayCells = grid.querySelectorAll('.calendar-day:not(.empty)');
+
+    for (var dia = 1; dia <= totalDiasMes; dia++) {
+      var dataAtual = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), dia);
+      dataAtual.setHours(0,0,0,0);
+      var dataISO = formatarDataISO(dataAtual);
+      var el = dayCells[dia - 1];
+      if (!el) continue;
+
+      el.className = 'calendar-day';
+      el.onclick = null;
+
+      var vagasEl = el.querySelector('.day-vagas');
+      if (vagasEl) vagasEl.remove();
+
+      if (dataAtual < hojeReal) {
+        el.classList.add('past');
+        continue;
+      }
+
+ var d = disp[dataISO];
+      var totalDispCovid = 0, totalLimiteCovid = 0, temDados = false;
+      if (d && d.blocos) {
+        d.blocos.forEach(function(bloco) {
+          if (bloco.encerrado) return;
+          temDados = true;
+          var vacCovid = bloco.vacinas['COVID-19'];
+          if (vacCovid) {
+            totalDispCovid += vacCovid.disponiveis;
+            totalLimiteCovid += vacCovid.limite;
+          }
+        });
+      }
+
+      var vagasDiv = document.createElement('div');
+      vagasDiv.className = 'day-vagas';
+
+      if (!temDados || totalLimiteCovid <= 0) {
+        vagasDiv.textContent = 'Indisponivel';
+        el.appendChild(vagasDiv);
+        el.classList.add('esgotado');
+        continue;
+      }
+
+      if (totalDispCovid > 0) {
+        vagasDiv.textContent = 'Disponivel';
+        el.appendChild(vagasDiv);
+        el.classList.add('disponivel');
+        el.onclick = (function(iso) { return function() { selecionarData(iso); }; })(dataISO);
+      } else {
+        vagasDiv.textContent = 'Indisponivel';
+        el.appendChild(vagasDiv);
+        el.classList.add('esgotado');
+      }
+
+      if (dataSelecionada === dataISO) el.classList.add('selecionado');
+    }
+  }).withFailureHandler(function(error) {
+    if (meuRequestId !== requestIdAtual) return;
+    var grid = document.getElementById('calendarGrid');
+    var overlay = grid.querySelector('.calendar-loading-overlay');
+    if (overlay) overlay.textContent = 'Erro ao carregar. Tente novamente.';
+  }).obterDisponibilidadeIntervalo(dataInicioISO, totalDiasMes);
+}
+
+function selecionarData(dataISO) {
+  var d = disponibilidadeCache[dataISO];
+  if (!d || !d.blocos) return;
+
+  var temVagaCovid = false;
+  d.blocos.forEach(function(bloco) {
+    if (bloco.encerrado) return;
+    var vacCovid = bloco.vacinas['COVID-19'];
+    if (vacCovid && vacCovid.disponiveis > 0) temVagaCovid = true;
+  });
+  if (!temVagaCovid) return;
+
+  dataSelecionada = dataISO;
+  blocoSelecionado = null;
+  document.getElementById('dataMarcacao').value = dataISO;
+  document.getElementById('blocoHoraInicio').value = '';
+  document.getElementById('blocoHoraFim').value = '';
+  atualizarSelecaoVisual();
+
+  renderCalendario();
+  mostrarInfoDisponibilidade(dataISO);
+}
+
+function mostrarInfoDisponibilidade(dataISO) {
+  var d = disponibilidadeCache[dataISO];
+  var info = document.getElementById('dispInfo');
+  if (!d || !d.blocos) {
+    info.style.display = 'none';
+    blocoSelecionado = null;
+    document.getElementById('blocoHoraInicio').value = '';
+    document.getElementById('blocoHoraFim').value = '';
+    return;
+  }
+  var partes = dataISO.split('-');
+  var dataPT = partes[2] + '/' + partes[1] + '/' + partes[0];
+
+  var blocosAbertos = d.blocos.filter(function(b) { return !b.encerrado; });
+  if (blocosAbertos.length === 0) {
+    info.innerHTML = '<strong>' + dataPT + '</strong> - Indisponivel nesta data.';
+    info.style.display = 'block';
+    blocoSelecionado = null;
+    document.getElementById('blocoHoraInicio').value = '';
+    document.getElementById('blocoHoraFim').value = '';
+    return;
+  }
+
+  var html = '<strong>' + dataPT + '</strong><br>';
+  window.blocosAbertosAtuais = blocosAbertos;
+
+  if (blocosAbertos.length === 1) {
+    var b = blocosAbertos[0];
+    html += 'Horario: ' + b.horaInicio + ' - ' + b.horaFim + '<br>';
+    for (var tipo in b.vacinas) {
+      if (tipo === 'Gripe Geral (-60)') continue;
+      html += tipo + ': ' + (b.vacinas[tipo].disponiveis > 0 ? 'Disponivel' : 'Indisponivel') + '<br>';
+    }
+    info.innerHTML = html;
+    info.style.display = 'block';
+    selecionarBloco(0);
+  } else {
+    html += '<div style="margin:8px 0;"><strong>Escolha o periodo:</strong></div>';
+    html += '<div id="blocosOpcoes" style="display:flex;gap:8px;flex-wrap:wrap;">';
+    blocosAbertos.forEach(function(b, idx) {
+      var temVaga = false;
+      for (var t in b.vacinas) {
+        if (t === 'Gripe Geral (-60)') continue;
+        if (b.vacinas[t].disponiveis > 0) temVaga = true;
+      }
+      var disabledAttr = !temVaga ? 'disabled' : '';
+      html += '<button type="button" class="btn-bloco" ' + disabledAttr + ' onclick="selecionarBloco(' + idx + ')" data-idx="' + idx + '">' +
+        b.horaInicio + '-' + b.horaFim + ' (' + (temVaga ? 'Disponivel' : 'Indisponivel') + ')</button>';
+    });
+    html += '</div><div id="blocoDetalhe" style="margin-top:10px;"></div>';
+    info.innerHTML = html;
+    info.style.display = 'block';
+    blocoSelecionado = null;
+    document.getElementById('blocoHoraInicio').value = '';
+    document.getElementById('blocoHoraFim').value = '';
+  }
+}
+
+function selecionarBloco(idx) {
+  var b = window.blocosAbertosAtuais[idx];
+  blocoSelecionado = b;
+  document.getElementById('blocoHoraInicio').value = b.horaInicio;
+  document.getElementById('blocoHoraFim').value = b.horaFim;
+
+  document.querySelectorAll('.btn-bloco').forEach(function(btn) { btn.classList.remove('ativo'); });
+  var btnAtivo = document.querySelector('.btn-bloco[data-idx="' + idx + '"]');
+  if (btnAtivo) btnAtivo.classList.add('ativo');
+
+  var detalhe = document.getElementById('blocoDetalhe');
+  if (detalhe) {
+    var html = '';
+    for (var tipo in b.vacinas) {
+      html += tipo + ': ' + (b.vacinas[tipo].disponiveis > 0 ? 'Disponivel' : 'Indisponivel') + '<br>';
+    }
+    detalhe.innerHTML = html;
+  }
+}
+
+function submitForm() {
+  var containerAntigo = document.getElementById('containerImprimir');
+  if (containerAntigo) containerAntigo.remove();
+
+  var nome = document.getElementById('nome').value.trim();
+  var dataNascimento = document.getElementById('dataNascimento').value;
+  var nif = document.getElementById('nif').value;
+  var contacto = document.getElementById('contacto').value;
+  var checkboxes = document.querySelectorAll('input[name="tipoVacina"]:checked');
+  var tiposVacina = Array.from(checkboxes).map(function(c) { return c.value; });
+  var dataMarcacao = document.getElementById('dataMarcacao').value;
+  var observacoes = document.getElementById('observacoes').value;
+  var listaEspera = document.getElementById('listaEspera').checked;
+  if (listaEspera) {
+    observacoes = (observacoes ? observacoes + " | " : "") + "DISPONIVEL PARA VAGA MAIS PROXIMA";
+  }
+
+  if (nome.length < 3) { showAlert('Nome muito curto! minimo 3 caracteres', 'error'); return; }
+  if (!dataNascimento) { showAlert('Data de nascimento obrigatoria!', 'error'); return; }
+  if (!/^\d{9}$/.test(nif)) { showAlert('NIF deve ter exatamente 9 digitos!', 'error'); return; }
+  if (!/^\d{9}$/.test(contacto)) { showAlert('Contacto deve ter exatamente 9 digitos!', 'error'); return; }
+  if (tiposVacina.length === 0) { showAlert('Selecione pelo menos uma vacina!', 'error'); return; }
+  if (tiposVacina.length === 1 && tiposVacina[0].indexOf('Gripe') !== -1) {
+    showAlert(
+      'Caso pretenda tomar APENAS a vacina da GRIPE, deverá dirigir-se à Farmácia da Liga. Mediante disponibilidade de stock. Horário das 10:00 às 12:00 e das 14:30 às 19:00, de segunda a sexta-feira, sujeito a alteração. (Neste caso, NÃO É NECESSÁRIO O PREENCHIMENTO DO FORMULÁRIO). Caso tenha uma marcação para vacina Covid já efetuada, aguarde 15 dias até se dirigir à Farmácia.',
+      'error'
+    );
+    return;
+  }
+  if (!dataMarcacao) { showAlert('Selecione uma data no calendario!', 'error'); return; }
+  if (!document.getElementById('consentimentoDados').checked) {
+    showAlert('E necessario aceitar a autorizacao de uso de dados para continuar!', 'error');
+    return;
+  }
+
+  var d = disponibilidadeCache[dataMarcacao];
+  if (!d || !d.blocos) { showAlert('Data invalida. Selecione novamente no calendario.', 'error'); return; }
+  if (!blocoSelecionado) { showAlert('Selecione um periodo (bloco de horas)!', 'error'); return; }
+
+  var indisponiveis = [];
+  var disponiveis = [];
+  for (var i = 0; i < tiposVacina.length; i++) {
+    var tipo = tiposVacina[i];
+    var vac = blocoSelecionado.vacinas[tipo];
+    if (!vac || vac.disponiveis <= 0) {
+      indisponiveis.push(tipo);
+    } else {
+      disponiveis.push(tipo);
+    }
+  }
+
+  if (indisponiveis.length > 0 && disponiveis.length > 0) {
+    var nomeDisp = disponiveis.join(' e ');
+    var nomeIndisp = indisponiveis.join(' e ');
+    var confirmar = confirm(
+      "Neste periodo so ha vaga para " + nomeDisp + ".\n\n" +
+      "Pretende continuar so com " + nomeDisp + "? A vacina " + nomeIndisp + " tera de ser marcada noutra data."
+    );
+    if (!confirmar) {
+      renderCalendario();
+      return;
+    }
+    tiposVacina = disponiveis;
+  } else if (indisponiveis.length > 0 && disponiveis.length === 0) {
+    showAlert("Ja nao ha vagas disponiveis para " + indisponiveis.join(" e ") + " neste periodo. Escolha outra data ou periodo.", "error");
+    return;
+  }
+
+  document.getElementById('btnSubmit').disabled = true;
+  document.getElementById('loading').style.display = 'block';
+
+  var dados = {
+    nome: nome,
+    dataNascimento: dataNascimento,
+    nif: nif,
+    contacto: contacto,
+    tiposVacina: tiposVacina,
+    dataMarcacao: dataMarcacao,
+    hora: blocoSelecionado.horaInicio,
+    blocoHoraInicio: blocoSelecionado.horaInicio,
+    blocoHoraFim: blocoSelecionado.horaFim,
+    observacoes: observacoes,
+    recuperacao: document.getElementById('recuperacao').value,
+    origemRow: document.getElementById('origemRow').value
+  };
+
+  google.script.run
+    .withSuccessHandler(function(response) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('btnSubmit').disabled = false;
+      if (response.sucesso) {
+        marcacaoPendente = true;
+        showAlert(response.mensagem, 'success');
+        mostrarBotaoImprimir(response.id);
+      } else {
+        showAlert(response.mensagem, 'error');
+      }
+    })
+    .withFailureHandler(function(error) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('btnSubmit').disabled = false;
+      showAlert('Erro: ' + error.message, 'error');
+    })
+    .criarMarcacao(dados);
+}
+
+function limparFormularioAposComprovativo() {
+  marcacaoPendente = false;
+  document.getElementById('formMarcacao').reset();
+  document.getElementById('idadeDisplay').style.display = 'none';
+  document.getElementById('dataMarcacao').value = '';
+  document.getElementById('blocoHoraInicio').value = '';
+  document.getElementById('blocoHoraFim').value = '';
+  dataSelecionada = null;
+  blocoSelecionado = null;
+  document.getElementById('dispInfo').style.display = 'none';
+  document.querySelectorAll('.check-option').forEach(function(el) { el.classList.remove('selected'); });
+  renderCalendario();
+  document.getElementById('consentimentoDados').checked = false;
+
+  var container = document.getElementById('containerImprimir');
+  if (container) container.remove();
+}
+
+function abrirDocumentoHtml(html) {
+  var blob = new Blob([html], { type: 'text/html' });
+  var url = URL.createObjectURL(blob);
+  var w = window.open(url, '_blank');
+  if (!w) {
+    alert('O browser bloqueou a janela. Autorize pop-ups para este site e tente novamente.');
+  }
+}
+
+function mostrarBotaoImprimir(idsMarcacao) {
+  var alertBox = document.getElementById('alertBox');
+  if (!alertBox) return;
+
+  clearTimeout(window.timeoutAlertBox);
+
+  var containerExistente = document.getElementById('containerImprimir');
+  if (containerExistente) containerExistente.remove();
+
+  var container = document.createElement('div');
+  container.id = 'containerImprimir';
+  container.style.cssText = 'margin-top:12px;';
+
+  var linhaBotoes = document.createElement('div');
+  linhaBotoes.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;';
+
+  var btnTalao = document.createElement('button');
+  btnTalao.type = 'button';
+  btnTalao.innerText = 'Imprimir Talão';
+  btnTalao.style.cssText = 'padding:10px 18px;background:#1B5E20;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:13px;font-family:Montserrat,sans-serif;';
+  btnTalao.onclick = function() { imprimirTalao(idsMarcacao); };
+
+  var btnA4 = document.createElement('button');
+  btnA4.type = 'button';
+  btnA4.innerText = 'Imprimir A4';
+  btnA4.style.cssText = 'padding:10px 18px;background:#6A1B9A;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:13px;font-family:Montserrat,sans-serif;';
+  btnA4.onclick = function() { imprimirA4(idsMarcacao); };
+
+  var btnPdf = document.createElement('button');
+  btnPdf.type = 'button';
+  btnPdf.innerText = 'Download Comprovativo (PDF)';
+  btnPdf.style.cssText = 'padding:10px 18px;background:#2E7D32;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:13px;font-family:Montserrat,sans-serif;';
+  btnPdf.onclick = function() { downloadPdf(idsMarcacao, btnPdf); };
+
+  linhaBotoes.appendChild(btnTalao);
+  linhaBotoes.appendChild(btnA4);
+  linhaBotoes.appendChild(btnPdf);
+
+  var linhaEmail = document.createElement('div');
+  linhaEmail.style.cssText = 'display:flex;gap:8px;margin-top:8px;';
+  linhaEmail.innerHTML =
+    '<input type="email" id="emailComprovativo" placeholder="Email para enviar comprovativo" style="flex:1;padding:9px;border:2px solid #e0e0e0;border-radius:6px;font-size:13px;font-family:Montserrat,sans-serif;">' +
+    '<button type="button" id="btnEnviarEmail" style="padding:9px 16px;background:#1565C0;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:13px;font-family:Montserrat,sans-serif;">Enviar</button>';
+
+  container.appendChild(linhaBotoes);
+  container.appendChild(linhaEmail);
+  alertBox.appendChild(container);
+
+  document.getElementById('btnEnviarEmail').onclick = function() {
+    enviarEmailComprovativo(idsMarcacao, this);
+  };
+}
+
+function imprimirTalao(id) {
+  setTimeout(function() {
+    google.script.run.withSuccessHandler(function(html) {
+      abrirDocumentoHtml(html);
+    }).withFailureHandler(function(err) {
+      alert('Erro ao gerar talão: ' + err.message);
+    }).obterDadosTalaoEImprimir(id);
+  }, 800);
+}
+
+function imprimirA4(id) {
+  google.script.run.withSuccessHandler(function(html) {
+    abrirDocumentoHtml(html);
+  }).withFailureHandler(function(err) {
+    alert('Erro ao gerar A4: ' + err.message);
+  }).obterDadosA4EImprimir(id);
+}
+
+function downloadPdf(idsMarcacao, btn) {
+  btn.disabled = true;
+  btn.textContent = 'A gerar PDF...';
+  google.script.run
+    .withSuccessHandler(function(resp) {
+      btn.disabled = false;
+      btn.textContent = 'Download Comprovativo (PDF)';
+      if (!resp.sucesso) { showAlert(resp.mensagem, 'error'); return; }
+      var link = document.createElement('a');
+      link.href = 'data:application/pdf;base64,' + resp.base64;
+      link.download = resp.nomeFicheiro;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      limparFormularioAposComprovativo();
+    })
+    .withFailureHandler(function(erro) {
+      btn.disabled = false;
+      btn.textContent = 'Download Comprovativo (PDF)';
+      showAlert('Erro ao gerar PDF: ' + erro.message, 'error');
+    })
+    .obterDadosPdfEEnviar(idsMarcacao, null);
+}
+
+function enviarEmailComprovativo(idsMarcacao, btn) {
+  var email = document.getElementById('emailComprovativo').value.trim();
+  if (!email) { showAlert('Introduza um email valido!', 'error'); return; }
+  btn.disabled = true;
+  btn.textContent = 'A enviar...';
+  google.script.run
+    .withSuccessHandler(function(resp) {
+      btn.disabled = false;
+      btn.textContent = 'Enviar';
+      if (resp.sucesso) {
+        showAlert(resp.mensagem, 'success');
+        limparFormularioAposComprovativo();
+      } else {
+        showAlert(resp.mensagem, 'error');
+      }
+    })
+    .withFailureHandler(function(erro) {
+      btn.disabled = false;
+      btn.textContent = 'Enviar';
+      showAlert('Erro ao enviar email: ' + erro.message, 'error');
+    })
+    .obterDadosPdfEEnviar(idsMarcacao, email);
+}
+
+function showAlert(message, type) {
+  var alertBox = document.getElementById('alertBox');
+  alertBox.textContent = message;
+  alertBox.className = 'alert alert-' + type;
+  alertBox.style.display = 'block';
+  alertBox.scrollIntoView({ behavior: 'smooth' });
+  clearTimeout(window.timeoutAlertBox);
+  if (type === 'success' && !marcacaoPendente) {
+    window.timeoutAlertBox = setTimeout(function() { alertBox.style.display = 'none'; }, 10000);
+  }
+}
+
+document.getElementById('formMarcacao').addEventListener('submit', function(e) {
+  e.preventDefault();
+  submitForm();
+});
+
+renderCalendario();
+
+window.addEventListener('beforeunload', function(e) {
+  if (marcacaoPendente) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+</script>
+</body>
+</html>
