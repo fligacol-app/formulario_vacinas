@@ -70,8 +70,6 @@ h1 { color: #111111; text-align: left; margin-bottom: 4px; font-size: 24px; font
   50% { opacity: 0.5; }
 }
 
-
-
 @media (max-width: 600px) {
   html, body { overflow-x: hidden; width: 100%; }
   body { padding: 20px 8px; }
@@ -239,6 +237,14 @@ Horário das 10:00 às 12:00 e das 14:30 às 19:00, de segunda a sexta-feira, su
 </div>
 
 <script>
+/* =========================================================================
+   CONFIGURACAO: URL da Web App do Google Apps Script.
+   Substitua SEU_ID_DEPLOYMENT pelo ID real do seu deployment
+   (Implementar -> Gerir implementacoes -> copiar o URL, a parte entre
+   /s/ e /exec).
+   ========================================================================= */
+var APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwpJcddO0aNyfIkPnGYvxhfwle1AtDWk4lM-GKZe9OxSl2oLZ4Q1duz3BqfZQ1FW7vq/exec";
+
 (function preencherRecuperacao() {
   var params = new URLSearchParams(window.location.search);
   if (params.get('recuperacao') === '1') {
@@ -403,77 +409,89 @@ function renderCalendario() {
   var dataInicioISO = formatarDataISO(primeiroDia);
   var meuRequestId = ++requestIdAtual;
 
-  google.script.run.withSuccessHandler(function(disp) {
-    if (meuRequestId !== requestIdAtual) return;
+  var url = APPS_SCRIPT_URL + "?api=disponibilidade&dataInicio=" + encodeURIComponent(dataInicioISO) + "&dias=" + totalDiasMes;
 
-    disponibilidadeCache = disp;
-    var grid = document.getElementById('calendarGrid');
-    var overlay = grid.querySelector('.calendar-loading-overlay');
-    if (overlay) overlay.remove();
+  fetch(url)
+    .then(function(response) { return response.json(); })
+    .then(function(disp) {
+      if (meuRequestId !== requestIdAtual) return;
 
-    var dayCells = grid.querySelectorAll('.calendar-day:not(.empty)');
-
-    for (var dia = 1; dia <= totalDiasMes; dia++) {
-      var dataAtual = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), dia);
-      dataAtual.setHours(0,0,0,0);
-      var dataISO = formatarDataISO(dataAtual);
-      var el = dayCells[dia - 1];
-      if (!el) continue;
-
-      el.className = 'calendar-day';
-      el.onclick = null;
-
-      var vagasEl = el.querySelector('.day-vagas');
-      if (vagasEl) vagasEl.remove();
-
-      if (dataAtual < hojeReal) {
-        el.classList.add('past');
-        continue;
+      if (disp && disp.erro) {
+        var grid0 = document.getElementById('calendarGrid');
+        var overlay0 = grid0.querySelector('.calendar-loading-overlay');
+        if (overlay0) overlay0.textContent = 'Erro: ' + disp.mensagem;
+        return;
       }
 
- var d = disp[dataISO];
-      var totalDispCovid = 0, totalLimiteCovid = 0, temDados = false;
-      if (d && d.blocos) {
-        d.blocos.forEach(function(bloco) {
-          if (bloco.encerrado) return;
-          temDados = true;
-          var vacCovid = bloco.vacinas['COVID-19'];
-          if (vacCovid) {
-            totalDispCovid += vacCovid.disponiveis;
-            totalLimiteCovid += vacCovid.limite;
-          }
-        });
+      disponibilidadeCache = disp;
+      var grid = document.getElementById('calendarGrid');
+      var overlay = grid.querySelector('.calendar-loading-overlay');
+      if (overlay) overlay.remove();
+
+      var dayCells = grid.querySelectorAll('.calendar-day:not(.empty)');
+
+      for (var dia = 1; dia <= totalDiasMes; dia++) {
+        var dataAtual = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), dia);
+        dataAtual.setHours(0,0,0,0);
+        var dataISO = formatarDataISO(dataAtual);
+        var el = dayCells[dia - 1];
+        if (!el) continue;
+
+        el.className = 'calendar-day';
+        el.onclick = null;
+
+        var vagasEl = el.querySelector('.day-vagas');
+        if (vagasEl) vagasEl.remove();
+
+        if (dataAtual < hojeReal) {
+          el.classList.add('past');
+          continue;
+        }
+
+        var d = disp[dataISO];
+        var totalDispCovid = 0, totalLimiteCovid = 0, temDados = false;
+        if (d && d.blocos) {
+          d.blocos.forEach(function(bloco) {
+            if (bloco.encerrado) return;
+            temDados = true;
+            var vacCovid = bloco.vacinas['COVID-19'];
+            if (vacCovid) {
+              totalDispCovid += vacCovid.disponiveis;
+              totalLimiteCovid += vacCovid.limite;
+            }
+          });
+        }
+
+        var vagasDiv = document.createElement('div');
+        vagasDiv.className = 'day-vagas';
+
+        if (!temDados || totalLimiteCovid <= 0) {
+          vagasDiv.textContent = 'Indisponivel';
+          el.appendChild(vagasDiv);
+          el.classList.add('esgotado');
+          continue;
+        }
+
+        if (totalDispCovid > 0) {
+          vagasDiv.textContent = 'Disponivel';
+          el.appendChild(vagasDiv);
+          el.classList.add('disponivel');
+          el.onclick = (function(iso) { return function() { selecionarData(iso); }; })(dataISO);
+        } else {
+          vagasDiv.textContent = 'Indisponivel';
+          el.appendChild(vagasDiv);
+          el.classList.add('esgotado');
+        }
+
+        if (dataSelecionada === dataISO) el.classList.add('selecionado');
       }
-
-      var vagasDiv = document.createElement('div');
-      vagasDiv.className = 'day-vagas';
-
-      if (!temDados || totalLimiteCovid <= 0) {
-        vagasDiv.textContent = 'Indisponivel';
-        el.appendChild(vagasDiv);
-        el.classList.add('esgotado');
-        continue;
-      }
-
-      if (totalDispCovid > 0) {
-        vagasDiv.textContent = 'Disponivel';
-        el.appendChild(vagasDiv);
-        el.classList.add('disponivel');
-        el.onclick = (function(iso) { return function() { selecionarData(iso); }; })(dataISO);
-      } else {
-        vagasDiv.textContent = 'Indisponivel';
-        el.appendChild(vagasDiv);
-        el.classList.add('esgotado');
-      }
-
-      if (dataSelecionada === dataISO) el.classList.add('selecionado');
-    }
-  }).withFailureHandler(function(error) {
-    if (meuRequestId !== requestIdAtual) return;
-    var grid = document.getElementById('calendarGrid');
-    var overlay = grid.querySelector('.calendar-loading-overlay');
-    if (overlay) overlay.textContent = 'Erro ao carregar. Tente novamente.';
-  }).obterDisponibilidadeIntervalo(dataInicioISO, totalDiasMes);
+    })
+    .catch(function(error) {
+      if (meuRequestId !== requestIdAtual) return;
+      var grid = document.getElementById('calendarGrid');
+      var overlay = grid.querySelector('.calendar-loading-overlay');
+      if (overlay) overlay.textContent = 'Erro ao carregar. Tente novamente.';
+    });
 }
 
 function selecionarData(dataISO) {
@@ -663,8 +681,13 @@ function submitForm() {
     origemRow: document.getElementById('origemRow').value
   };
 
-  google.script.run
-    .withSuccessHandler(function(response) {
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify(dados),
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+  })
+    .then(function(response) { return response.json(); })
+    .then(function(response) {
       document.getElementById('loading').style.display = 'none';
       document.getElementById('btnSubmit').disabled = false;
       if (response.sucesso) {
@@ -675,12 +698,11 @@ function submitForm() {
         showAlert(response.mensagem, 'error');
       }
     })
-    .withFailureHandler(function(error) {
+    .catch(function(error) {
       document.getElementById('loading').style.display = 'none';
       document.getElementById('btnSubmit').disabled = false;
       showAlert('Erro: ' + error.message, 'error');
-    })
-    .criarMarcacao(dados);
+    });
 }
 
 function limparFormularioAposComprovativo() {
@@ -765,27 +787,38 @@ function mostrarBotaoImprimir(idsMarcacao) {
 
 function imprimirTalao(id) {
   setTimeout(function() {
-    google.script.run.withSuccessHandler(function(html) {
-      abrirDocumentoHtml(html);
-    }).withFailureHandler(function(err) {
-      alert('Erro ao gerar talão: ' + err.message);
-    }).obterDadosTalaoEImprimir(id);
+    fetch(APPS_SCRIPT_URL + "?api=talao&id=" + encodeURIComponent(id))
+      .then(function(response) { return response.text(); })
+      .then(function(html) {
+        abrirDocumentoHtml(html);
+      })
+      .catch(function(err) {
+        alert('Erro ao gerar talão: ' + err.message);
+      });
   }, 800);
 }
 
 function imprimirA4(id) {
-  google.script.run.withSuccessHandler(function(html) {
-    abrirDocumentoHtml(html);
-  }).withFailureHandler(function(err) {
-    alert('Erro ao gerar A4: ' + err.message);
-  }).obterDadosA4EImprimir(id);
+  fetch(APPS_SCRIPT_URL + "?api=a4&id=" + encodeURIComponent(id))
+    .then(function(response) { return response.text(); })
+    .then(function(html) {
+      abrirDocumentoHtml(html);
+    })
+    .catch(function(err) {
+      alert('Erro ao gerar A4: ' + err.message);
+    });
 }
 
 function downloadPdf(idsMarcacao, btn) {
   btn.disabled = true;
   btn.textContent = 'A gerar PDF...';
-  google.script.run
-    .withSuccessHandler(function(resp) {
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify({ acao: 'gerarPdf', idsMarcacao: idsMarcacao, email: null }),
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+  })
+    .then(function(response) { return response.json(); })
+    .then(function(resp) {
       btn.disabled = false;
       btn.textContent = 'Download Comprovativo (PDF)';
       if (!resp.sucesso) { showAlert(resp.mensagem, 'error'); return; }
@@ -797,12 +830,11 @@ function downloadPdf(idsMarcacao, btn) {
       document.body.removeChild(link);
       limparFormularioAposComprovativo();
     })
-    .withFailureHandler(function(erro) {
+    .catch(function(erro) {
       btn.disabled = false;
       btn.textContent = 'Download Comprovativo (PDF)';
       showAlert('Erro ao gerar PDF: ' + erro.message, 'error');
-    })
-    .obterDadosPdfEEnviar(idsMarcacao, null);
+    });
 }
 
 function enviarEmailComprovativo(idsMarcacao, btn) {
@@ -810,8 +842,13 @@ function enviarEmailComprovativo(idsMarcacao, btn) {
   if (!email) { showAlert('Introduza um email valido!', 'error'); return; }
   btn.disabled = true;
   btn.textContent = 'A enviar...';
-  google.script.run
-    .withSuccessHandler(function(resp) {
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify({ acao: 'gerarPdf', idsMarcacao: idsMarcacao, email: email }),
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+  })
+    .then(function(response) { return response.json(); })
+    .then(function(resp) {
       btn.disabled = false;
       btn.textContent = 'Enviar';
       if (resp.sucesso) {
@@ -821,12 +858,11 @@ function enviarEmailComprovativo(idsMarcacao, btn) {
         showAlert(resp.mensagem, 'error');
       }
     })
-    .withFailureHandler(function(erro) {
+    .catch(function(erro) {
       btn.disabled = false;
       btn.textContent = 'Enviar';
       showAlert('Erro ao enviar email: ' + erro.message, 'error');
-    })
-    .obterDadosPdfEEnviar(idsMarcacao, email);
+    });
 }
 
 function showAlert(message, type) {
